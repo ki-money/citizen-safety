@@ -1,4 +1,4 @@
-﻿setuptools
+﻿setuptools>=70.0.0
 wheel
 Flask==2.3.3
 pymongo==4.6.3
@@ -8,6 +8,4 @@ googletrans==4.0.0-rc1
 deep-translator==1.11.4
 python-dotenv==1.0.1
 reportlab==4.0.7
-numpy==1.24.3
-gunicorn
-
+numpy>=1.26.4
