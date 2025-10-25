@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Police Dashboard - {{ station }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
+        .header { background: #1976d2; color: white; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 24px; margin-bottom: 5px; }
+        .station-info { font-size: 14px; opacity: 0.9; }
+        .nav { background: white; padding: 15px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .nav a { color: #1976d2; text-decoration: none; padding: 8px 16px; border-radius: 4px; transition: background 0.3s; font-weight: 500; }
+        .nav a:hover { background: #e3f2fd; }
+        .logout { background: #d32f2f; color: white !important; }
+        .logout:hover { background: #c62828 !important; }
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }
+        .stat-card h3 { font-size: 14px; color: #666; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .value { font-size: 36px; font-weight: bold; color: #1976d2; }
+        .section { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .section h2 { font-size: 20px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0; color: #1976d2; display: flex; align-items: center; gap: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th { background: #f8f9fa; padding: 14px 12px; text-align: left; font-weight: 600; font-size: 13px; color: #555; border-bottom: 2px solid #e0e0e0; }
+        td { padding: 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        tr:hover { background: #f9f9f9; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge-pending { background: #fff3cd; color: #856404; }
+        .badge-investigating { background: #cce5ff; color: #004085; }
+        .badge-resolved { background: #d4edda; color: #155724; }
+        .badge-closed { background: #d1ecf1; color: #0c5460; }
+        .badge-high { background: #f8d7da; color: #721c24; }
+        .badge-medium { background: #fff3cd; color: #856404; }
+        .badge-low { background: #d1ecf1; color: #0c5460; }
+        .badge-spam { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+        .report-id { font-family: 'Courier New', monospace; font-weight: bold; color: #1976d2; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #1976d2; color: white; text-decoration: none; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+        .btn:hover { background: #1565c0; transform: translateY(-1px); }
+        .btn-small { padding: 5px 10px; font-size: 12px; }
+        .btn-translate { background: #4caf50; }
+        .btn-translate:hover { background: #45a049; }
+        .btn-translate-sw { background: #ff9800; }
+        .btn-translate-sw:hover { background: #f57c00; }
+        .btn-secondary { background: #607d8b; }
+        .btn-secondary:hover { background: #546e7a; }
+        .btn-download { background: #9c27b0; }
+        .btn-download:hover { background: #7b1fa2; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; backdrop-filter: blur(4px); }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 32px; border-radius: 16px; max-width: 720px; width: 92%; max-height: 92vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        .modal-content h3 { margin-bottom: 20px; color: #1976d2; font-size: 22px; display: flex; align-items: center; gap: 8px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #444; font-size: 14px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 11px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; transition: border 0.2s; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: #1976d2; }
+        .form-group textarea { resize: vertical; min-height: 100px; }
+        .empty-state { text-align: center; padding: 50px; color: #999; font-size: 15px; }
+        .translation-panel { background: #e3f2fd; padding: 16px; border-radius: 10px; margin: 20px 0; border-left: 5px solid #1976d2; }
+        .translation-panel.sw-panel { background: #fff3e0; border-left-color: #ff9800; }
+        .translation-panel h4 { color: #1976d2; margin-bottom: 12px; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+        .translation-panel.sw-panel h4 { color: #f57c00; }
+        .lang-indicator { display: inline-block; padding: 3px 8px; background: #1976d2; color: white; border-radius: 4px; font-size: 10px; font-weight: bold; margin-left: 6px; }
+        .lang-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 8px; }
+        .lang-badge.en { background: #e3f2fd; color: #1976d2; }
+        .lang-badge.sw { background: #fff3e0; color: #f57c00; }
+        .translation-buttons { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+        .action-buttons { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+        .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #f3f3f3; border-top: 2px solid #1976d2; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .modal-content { padding: 20px; }
+            th, td { padding: 10px 6px; font-size: 12px; }
+            .translation-buttons { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Police Dashboard</h1>
+        <div class="station-info">{{ station }} Police Station</div>
+    </div>
+
+    <div class="nav">
+        <div>
+            <a href="#reports">📋 Reports</a>
+            <a href="#hotspots">🗺️ Hotspots</a>
+            <a href="{{ url_for('police_map') }}" target="_blank">🌍 Map View</a>
+        </div>
+        <a href="{{ url_for('police_logout') }}" class="logout">Logout</a>
+    </div>
+
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card"><h3>Total Reports</h3><div class="value">{{ stats.total_reports or 0 }}</div></div>
+            <div class="stat-card"><h3>Pending</h3><div class="value">{{ stats.pending_reports or 0 }}</div></div>
+            <div class="stat-card"><h3>Resolved</h3><div class="value">{{ stats.resolved_reports or 0 }}</div></div>
+            <div class="stat-card"><h3>Recent (24h)</h3><div class="value">{{ stats.recent_reports or 0 }}</div></div>
+        </div>
+
+        <div class="section" id="reports">
+            <h2>📋 Recent Reports</h2>
+            {% if reports %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Report ID</th>
+                            <th>Category</th>
+                            <th>Location</th>
+                            <th>Language</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports[:50] %}
+                        <tr>
+                            <td><span class="report-id">#{{ report.short_id }}</span></td>
+                            <td>{{ report.category|title }}</td>
+                            <td>{{ report.manual_location }}</td>
+                            <td>
+                                {% if report.language|lower in ['english', 'en'] %}
+                                    <span class="lang-badge en">EN</span>
+                                {% elif report.language|lower in ['kiswahili', 'swahili', 'sw'] %}
+                                    <span class="lang-badge sw">SW</span>
+                                {% else %}
+                                    <span class="lang-badge en">{{ report.language[:2]|upper }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ report.status }}">{{ report.status|title }}</span>
+                                {% if report.spam_score|default(0) > 50 %}
+                                    <span class="badge badge-spam">⚠ Suspicious</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ report.created_at.strftime('%b %d, %H:%M') if report.created_at else 'N/A' }}</td>
+                            <td>
+                                <button class="btn btn-small"
+                                        data-id="{{ report.id }}"
+                                        data-short="{{ report.short_id }}"
+                                        data-category="{{ report.category }}"
+                                        data-description="{{ report.description|e }}"
+                                        data-location="{{ report.manual_location }}"
+                                        data-language="{{ report.language or 'English' }}"
+                                        data-spam-score="{{ report.spam_score|default(0) }}"
+                                        onclick="openManageModal(this)">
+                                    📝 Manage
+                                </button>
+                                <a href="{{ url_for('police_download_report', report_id=report.id) }}"
+                                   class="btn btn-small btn-download" target="_blank">
+                                    📥 PDF
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">No reports found for {{ station }}</div>
+            {% endif %}
+        </div>
+
+        <div class="section" id="hotspots">
+            <h2>🗺️ Crime Hotspots</h2>
+            {% if hotspots %}
+                <table>
+                    <thead><tr><th>Location</th><th>Incidents</th><th>Last Incident</th><th>Coordinates</th></tr></thead>
+                    <tbody>
+                        {% for hotspot in hotspots[:20] %}
+                        <tr>
+                            <td>{{ hotspot.location }}</td>
+                            <td>
+                                <strong>{{ hotspot.incident_count }}</strong>
+                                {% if hotspot.incident_count >= 10 %}<span class="badge badge-high">High</span>
+                                {% elif hotspot.incident_count >= 5 %}<span class="badge badge-medium">Medium</span>
+                                {% else %}<span class="badge badge-low">Low</span>{% endif %}
+                            </td>
+                            <td>{{ hotspot.last_incident.strftime('%b %d') if hotspot.last_incident else 'N/A' }}</td>
+                            <td>{{ "%.4f, %.4f"|format(hotspot.lat, hotspot.lon) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">No hotspots identified</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- MANAGE MODAL -->
+    <div class="modal" id="manageModal">
+        <div class="modal-content">
+            <h3>📋 Report #<span id="manageReportId"></span></h3>
+
+            <div style="background:#f8f9fa;padding:18px;border-radius:12px;margin-bottom:24px;">
+                <p><strong>Category:</strong> <span id="manageCategory"></span></p>
+                <p><strong>Location:</strong> <span id="manageLocation"></span></p>
+                <p>
+                    <strong>Detected Language:</strong>
+                    <span id="manageLanguage"></span>
+                    <span id="manageLangIndicator" class="lang-indicator"></span>
+                </p>
+                <p id="spamWarning" style="display:none;color:#d32f2f;font-weight:600;margin-top:8px;">
+                    ⚠ This report may be spam (score: <span id="spamScore"></span>)
+                </p>
+                <hr style="margin:16px 0;border:none;border-top:1px dashed #ddd;">
+                <p><strong>Original Description:</strong></p>
+                <div id="manageDescription" style="background:white;padding:14px;border-radius:8px;white-space:pre-wrap;font-family:inherit;"></div>
+
+                <!-- Translation Buttons -->
+                <div class="translation-buttons">
+                    <button id="translateEnBtn" class="btn btn-small btn-translate" onclick="translateReport('en')">
+                        🇬🇧 Translate to English
+                    </button>
+                    <button id="translateSwBtn" class="btn btn-small btn-translate-sw" onclick="translateReport('sw')">
+                        🇰🇪 Translate to Kiswahili
+                    </button>
+                </div>
+
+                <!-- English Translation Panel -->
+                <div class="translation-panel" id="translationPanelEn" style="display:none;">
+                    <h4>🇬🇧 English Translation</h4>
+                    <div id="translatedContentEn" style="background:white;padding:12px;border-radius:8px;white-space:pre-wrap;margin-top:10px;"></div>
+                </div>
+
+                <!-- Kiswahili Translation Panel -->
+                <div class="translation-panel sw-panel" id="translationPanelSw" style="display:none;">
+                    <h4>🇰🇪 Kiswahili Translation</h4>
+                    <div id="translatedContentSw" style="background:white;padding:12px;border-radius:8px;white-space:pre-wrap;margin-top:10px;"></div>
+                </div>
+            </div>
+
+            <!-- Response Form -->
+            <form method="POST" id="responseForm">
+                <div class="form-group">
+                    <label>Officer Name *</label>
+                    <input type="text" name="officer_name" required placeholder="Enter your full name">
+                </div>
+                <div class="form-group">
+                    <label>Action Taken *</label>
+                    <textarea name="action_taken" required placeholder="Describe the action taken..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Additional Notes</label>
+                    <textarea name="notes" placeholder="Optional notes..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Status *</label>
+                    <select name="status" required>
+                        <option value="investigating">Investigating</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div class="action-buttons">
+                    <button type="submit" class="btn">✓ Submit Response</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeManageModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentReportId = null;
+        let currentLang = 'en';
+        let translationsCache = { en: null, sw: null };
+
+        function openManageModal(btn) {
+            const data = btn.dataset;
+            currentReportId = data.id;
+            translationsCache = { en: null, sw: null };
+
+            // Detect language from report
+            const lang = data.language.toLowerCase();
+            if (/sw|kiswahili|swahili/.test(lang)) {
+                currentLang = 'sw';
+            } else {
+                currentLang = 'en';
+            }
+
+            // Populate modal
+            document.getElementById('manageReportId').textContent = data.short;
+            document.getElementById('manageCategory').textContent = data.category;
+            document.getElementById('manageLocation').textContent = data.location;
+            document.getElementById('manageLanguage').textContent = data.language;
+            document.getElementById('manageLangIndicator').textContent = data.language.substring(0, 2).toUpperCase();
+            document.getElementById('manageDescription').textContent = data.description;
+
+            // Update language badge color
+            const indicator = document.getElementById('manageLangIndicator');
+            if (currentLang === 'en') {
+                indicator.style.background = '#1976d2';
+            } else if (currentLang === 'sw') {
+                indicator.style.background = '#ff9800';
+            }
+
+            // Spam warning
+            const spamScore = parseInt(data.spamScore) || 0;
+            const spamEl = document.getElementById('spamWarning');
+            const scoreEl = document.getElementById('spamScore');
+            if (spamScore > 50) {
+                scoreEl.textContent = spamScore;
+                spamEl.style.display = 'block';
+            } else {
+                spamEl.style.display = 'none';
+            }
+
+            // Hide translation panels
+            document.getElementById('translationPanelEn').style.display = 'none';
+            document.getElementById('translationPanelSw').style.display = 'none';
+
+            // Show both translation buttons
+            const enBtn = document.getElementById('translateEnBtn');
+            const swBtn = document.getElementById('translateSwBtn');
+
+            enBtn.style.display = 'inline-flex';
+            swBtn.style.display = 'inline-flex';
+            enBtn.disabled = false;
+            swBtn.disabled = false;
+            enBtn.innerHTML = '🇬🇧 Translate to English';
+            swBtn.innerHTML = '🇰🇪 Translate to Kiswahili';
+
+            if (currentLang === 'en') {
+                enBtn.innerHTML = '🇬🇧 Already in English';
+                enBtn.style.opacity = '0.6';
+            } else {
+                enBtn.style.opacity = '1';
+            }
+
+            if (currentLang === 'sw') {
+                swBtn.innerHTML = '🇰🇪 Already in Kiswahili';
+                swBtn.style.opacity = '0.6';
+            } else {
+                swBtn.style.opacity = '1';
+            }
+
+            // Form
+            document.getElementById('responseForm').action = '/police/respond/' + data.id;
+            document.getElementById('manageModal').classList.add('active');
+        }
+
+        function translateReport(targetLang) {
+            if ((currentLang === 'en' && targetLang === 'en') ||
+                (currentLang === 'sw' && targetLang === 'sw')) {
+                const panelId = targetLang === 'en' ? 'translationPanelEn' : 'translationPanelSw';
+                const contentId = targetLang === 'en' ? 'translatedContentEn' : 'translatedContentSw';
+                const panel = document.getElementById(panelId);
+                const contentDiv = document.getElementById(contentId);
+                const langName = targetLang === 'en' ? 'English' : 'Kiswahili';
+
+                contentDiv.innerHTML = `<p style="color:#1976d2;font-weight:600;">ℹ️ This report is already in ${langName}. No translation needed.</p>`;
+                panel.style.display = 'block';
+                return;
+            }
+
+            if (translationsCache[targetLang]) {
+                showTranslation(targetLang, translationsCache[targetLang]);
+                return;
+            }
+
+            const panelId = targetLang === 'en' ? 'translationPanelEn' : 'translationPanelSw';
+            const contentId = targetLang === 'en' ? 'translatedContentEn' : 'translatedContentSw';
+            const btnId = targetLang === 'en' ? 'translateEnBtn' : 'translateSwBtn';
+
+            const panel = document.getElementById(panelId);
+            const contentDiv = document.getElementById(contentId);
+            const btn = document.getElementById(btnId);
+
+            const originalBtnText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Translating...';
+
+            contentDiv.innerHTML = '<p style="color:#666;font-style:italic;">Translating to ' +
+                                  (targetLang === 'en' ? 'English' : 'Kiswahili') + '...</p>';
+            panel.style.display = 'block';
+
+            let attempts = 0;
+            const maxAttempts = 3;
+
+            function tryTranslate() {
+                fetch(`/api/translate_report/${currentReportId}/${targetLang}?t=${Date.now()}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalBtnText;
+
+                        if (data.success) {
+                            translationsCache[targetLang] = data;
+                            showTranslation(targetLang, data);
+                        } else {
+                            if (attempts < maxAttempts - 1) {
+                                attempts++;
+                                contentDiv.innerHTML = `<p style="color:#e67e22;">Retrying... (${attempts}/${maxAttempts})</p>`;
+                                setTimeout(tryTranslate, 1500);
+                            } else {
+                                contentDiv.innerHTML = '<p style="color:#d32f2f;">❌ Translation unavailable. Please try again later.</p>';
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Translation error:', error);
+                        btn.disabled = false;
+                        btn.innerHTML = originalBtnText;
+
+                        if (attempts < maxAttempts - 1) {
+                            attempts++;
+                            setTimeout(tryTranslate, 1500);
+                        } else {
+                            contentDiv.innerHTML = '<p style="color:#d32f2f;">❌ Network error. Check your connection.</p>';
+                        }
+                    });
+            }
+
+            tryTranslate();
+        }
+
+        function showTranslation(targetLang, data) {
+            const contentId = targetLang === 'en' ? 'translatedContentEn' : 'translatedContentSw';
+            const contentDiv = document.getElementById(contentId);
+            const t = data.translated;
+            const langName = targetLang === 'en' ? 'English' : 'Kiswahili';
+            const flag = targetLang === 'en' ? '🇬🇧' : '🇰🇪';
+
+            contentDiv.innerHTML = `
+                <p style="color:#1976d2;font-weight:bold;margin-bottom:12px;">${flag} Translated to ${langName}:</p>
+                <p><strong>Category:</strong> ${t.category}</p>
+                <p><strong>Location:</strong> ${t.manual_location}</p>
+                <p style="margin-top:12px;"><strong>Description:</strong></p>
+                <p style="line-height:1.6;">${t.description}</p>
+                <p style="font-size:11px;color:#888;margin-top:12px;font-style:italic;">
+                    Auto-translated • Original language: ${data.original_language?.toUpperCase() || 'Unknown'}
+                </p>
+            `;
+        }
+
+        function closeManageModal() {
+            document.getElementById('manageModal').classList.remove('active');
+            currentReportId = null;
+            translationsCache = { en: null, sw: null };
+        }
+
+        document.getElementById('manageModal').addEventListener('click', function(e) {
+            if (e.target === this) closeManageModal();
+        });
+    </script>
+</body>
+</html>
